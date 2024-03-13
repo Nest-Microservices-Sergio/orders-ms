@@ -1,12 +1,19 @@
-import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 
 import { PrismaClient } from '@prisma/client';
-import { RpcException } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import {
   ChangeOrderStatusDto,
   CreateOrderDto,
   OrderPaginationDto,
 } from './dto';
+import { PRODUCT_SERVICE } from 'src/config';
 
 @Injectable()
 export class OrdersService extends PrismaClient implements OnModuleInit {
@@ -17,10 +24,25 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     this.logger.log('Connected to the database');
   }
 
+  constructor(
+    @Inject(PRODUCT_SERVICE) private readonly productsClient: ClientProxy,
+  ) {
+    super();
+  }
+
   create(createOrderDto: CreateOrderDto) {
-    return this.order.create({
-      data: createOrderDto,
-    });
+    const ids = [5, 6];
+
+    const products = this.productsClient.send(
+      { cmd: 'validate_products' },
+      ids,
+    );
+
+    return products;
+
+    // return this.order.create({
+    //   data: createOrderDto,
+    // });
   }
 
   async findAll(orderPaginationDto: OrderPaginationDto) {
