@@ -3,6 +3,7 @@
 /dist
 /node_modules
 /postgres
+/prisma/migrations/
 
 # Logs
 logs
