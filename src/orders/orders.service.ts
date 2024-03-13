@@ -14,6 +14,7 @@ import {
   OrderPaginationDto,
 } from './dto';
 import { PRODUCT_SERVICE } from 'src/config';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class OrdersService extends PrismaClient implements OnModuleInit {
@@ -30,19 +31,44 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     super();
   }
 
-  create(createOrderDto: CreateOrderDto) {
-    const ids = [5, 6];
+  async create(createOrderDto: CreateOrderDto) {
+    try {
+      const productIds = createOrderDto.items.map((item) => item.productId);
 
-    const products = this.productsClient.send(
-      { cmd: 'validate_products' },
-      ids,
-    );
+      const products: any[] = await firstValueFrom(
+        this.productsClient.send({ cmd: 'validate_products' }, productIds),
+      );
 
-    return products;
+      const totalAmount = createOrderDto.items.reduce((acc, orderItem) => {
+        const price = products.find(
+          (product) => product.id === orderItem.productId,
+        ).price;
+        return price * orderItem.quantity;
+      }, 0);
 
-    // return this.order.create({
-    //   data: createOrderDto,
-    // });
+      const totalItems = createOrderDto.items.reduce((acc, orderItem) => {
+        return acc + orderItem.quantity;
+      }, 0);
+
+      const order = await this.order.create({
+        data: {
+          totalAmount: totalAmount,
+          totalItems: totalItems,
+          OrderItem: {
+            createMany:{
+              data: []
+            }
+          }
+        }
+      });
+
+      return order;
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: 'Check Orders Service Logs',
+      });
+    }
   }
 
   async findAll(orderPaginationDto: OrderPaginationDto) {
