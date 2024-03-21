@@ -2,8 +2,10 @@
 .env
 /dist
 /node_modules
-/postgres
+
 /prisma/migrations/
+
+postgres/
 
 # Logs
 logs
